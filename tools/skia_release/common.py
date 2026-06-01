@@ -59,6 +59,7 @@ def machine():
       'x86_64': 'x64',
       'arm64': 'arm64',
       'aarch64': 'arm64',
+      'riscv64': 'riscv64',
   }[platform.machine()]
 
 

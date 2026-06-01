@@ -143,6 +143,12 @@ def main():
           'cc="gcc-10"',
           'cxx="g++-10"',
       ]
+    elif machine == 'riscv64':
+      args += [
+          'extra_cflags_cc+=["-fno-exceptions", "-fno-rtti", "-D_GLIBCXX_USE_CXX11_ABI=0"]',
+          'cc="gcc"',
+          'cxx="g++"',
+      ]
     else:
       args += [
           'extra_cflags_cc+=["-fno-exceptions", "-fno-rtti","-D_GLIBCXX_USE_CXX11_ABI=0"]',

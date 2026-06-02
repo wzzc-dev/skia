@@ -5,6 +5,7 @@ on:
     branches:
       - skiko
       - skiko-m*
+      - riscv64
   pull_request:
   workflow_dispatch:
     inputs:
@@ -50,6 +51,8 @@ jobs:
         run: |
           if [[ "$GITHUB_REF" == refs/heads/skiko-m* ]]; then
             echo "should_release=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REF" == refs/heads/riscv64 ]]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
           elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$INPUT_SHOULD_RELEASE" == "true" ]]; then
             echo "should_release=true" >> "$GITHUB_OUTPUT"
           else
@@ -63,6 +66,7 @@ jobs:
 
   macos:
     needs: prepare
+    if: ${{ github.ref_name != 'riscv64' }}
     runs-on: ${{ fromJson('{"macos":"macos-15","ios":"macos-15","iosSim":"macos-15","tvos":"macos-15","tvosSim":"macos-15"}')[matrix.target] }}
     strategy:
       fail-fast: false
@@ -97,6 +101,7 @@ jobs:
 
   linux:
     needs: prepare
+    if: ${{ github.ref_name != 'riscv64' }}
     runs-on: ubuntu-latest
     container: ubuntu:20.04
     strategy:
@@ -126,6 +131,7 @@ jobs:
 
   linux-wasm:
     needs: prepare
+    if: ${{ github.ref_name != 'riscv64' }}
     runs-on: ubuntu-latest
     container: ubuntu:20.04
     strategy:
@@ -155,6 +161,7 @@ jobs:
 
   linux-android:
     needs: prepare
+    if: ${{ github.ref_name != 'riscv64' }}
     runs-on: ubuntu-latest
     container: ubuntu:20.04
     strategy:
@@ -189,6 +196,7 @@ jobs:
 
   linux-arm64:
     needs: prepare
+    if: ${{ github.ref_name != 'riscv64' }}
     runs-on: ubuntu-22.04-arm
     strategy:
       fail-fast: false
@@ -224,8 +232,52 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  linux-riscv64:
+    needs: prepare
+    if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/skiko-m') || github.ref_name == 'riscv64' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target linux --machine riscv64
+        if: ${{ needs.prepare.outputs.should_release == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: riscv64
+      - name: Assemble
+        run: |
+          docker run --rm --platform linux/riscv64 \
+            -v "${GITHUB_WORKSPACE}:/workspace" \
+            -e BUILD_TYPE="${{ matrix.build_type }}" \
+            -e BUILD_VERSION="${{ needs.prepare.outputs.version }}" \
+            -e SKIA_BUILD_DIR=/workspace \
+            ubuntu:24.04 \
+            /bin/bash -euxo pipefail -c '
+              cd /workspace
+              ./tools/skia_release/prepare_linux_riscv64.sh
+              python3 tools/skia_release/build.py --skia-dir "${SKIA_BUILD_DIR}" --build-type "${BUILD_TYPE}" --target linux --machine riscv64 --gpu-as-extension --enable-graphite
+              python3 tools/skia_release/archive.py --skia-dir "${SKIA_BUILD_DIR}" --version "${BUILD_VERSION}" --build-type "${BUILD_TYPE}" --target linux --machine riscv64
+            '
+      - uses: actions/upload-artifact@v4
+        if: ${{ needs.prepare.outputs.should_release == 'true' }}
+        with:
+          name: Skia-${{ needs.prepare.outputs.version }}-linux-${{ matrix.build_type }}-riscv64.zip
+          path: '*.zip'
+      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target linux --machine riscv64
+        if: ${{ needs.prepare.outputs.should_release == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   windows:
     needs: prepare
+    if: ${{ github.ref_name != 'riscv64' }}
     runs-on: windows-2022
     strategy:
       fail-fast: false

@@ -6,6 +6,7 @@ on:
       - skiko
       - skiko-m*
       - riscv64
+      - moui-support
   pull_request:
   workflow_dispatch:
     inputs:
@@ -234,7 +235,7 @@ jobs:
 
   linux-riscv64:
     needs: prepare
-    if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/skiko-m') || github.ref_name == 'riscv64' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/heads/skiko-m') || github.ref_name == 'riscv64' || github.ref_name == 'moui-support' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

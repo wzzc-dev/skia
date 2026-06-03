@@ -75,6 +75,7 @@ jobs:
         target: ["macos", "ios", "iosSim", "tvos", "tvosSim"]
         machine: ["x64", "arm64"]
         build_type: [Release, Debug]
+        library_type: [static, shared]
         exclude:
           - target: tvos
             machine: x64
@@ -82,20 +83,20 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target ${{ matrix.target }} --build-type ${{ matrix.build_type }} --machine ${{ matrix.machine }}
+      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target ${{ matrix.target }} --build-type ${{ matrix.build_type }} --machine ${{ matrix.machine }} --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Print Xcode version
         run: xcodebuild -version
-      - run: python3 tools/skia_release/build.py --skia-dir . --build-type ${{ matrix.build_type }} --target ${{ matrix.target }} --machine ${{ matrix.machine }} --gpu-as-extension --enable-graphite ${{ matrix.target == 'macos' && '--enable-graphite-dawn' || '' }}
-      - run: python3 tools/skia_release/archive.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target ${{ matrix.target }} --machine ${{ matrix.machine }}
+      - run: python3 tools/skia_release/build.py --skia-dir . --build-type ${{ matrix.build_type }} --target ${{ matrix.target }} --machine ${{ matrix.machine }} --library-type ${{ matrix.library_type }} --gpu-as-extension --enable-graphite ${{ matrix.target == 'macos' && '--enable-graphite-dawn' || '' }}
+      - run: python3 tools/skia_release/archive.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target ${{ matrix.target }} --machine ${{ matrix.machine }} --library-type ${{ matrix.library_type }}
       - uses: actions/upload-artifact@v4
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         with:
-          name: Skia-${{ needs.prepare.outputs.version }}-${{ matrix.target }}-${{ matrix.build_type }}-${{ matrix.machine }}.zip
+          name: Skia-${{ needs.prepare.outputs.version }}-${{ matrix.target }}-${{ matrix.build_type }}-${{ matrix.machine }}${{ matrix.library_type == 'shared' && '-shared' || '' }}.zip
           path: '*.zip'
-      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target ${{ matrix.target }} --machine ${{ matrix.machine }}
+      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target ${{ matrix.target }} --machine ${{ matrix.machine }} --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -109,23 +110,24 @@ jobs:
       fail-fast: false
       matrix:
         build_type: [Debug, Release]
+        library_type: [static, shared]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - run: ./tools/skia_release/prepare_linux.sh
-      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }}
+      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: PATH=/usr/lib/binutils-2.26/bin:$PATH python3 tools/skia_release/build.py --skia-dir . --build-type ${{ matrix.build_type }} --gpu-as-extension --enable-graphite
-      - run: PATH=/usr/lib/binutils-2.26/bin:$PATH python3 tools/skia_release/archive.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }}
+      - run: PATH=/usr/lib/binutils-2.26/bin:$PATH python3 tools/skia_release/build.py --skia-dir . --build-type ${{ matrix.build_type }} --library-type ${{ matrix.library_type }} --gpu-as-extension --enable-graphite
+      - run: PATH=/usr/lib/binutils-2.26/bin:$PATH python3 tools/skia_release/archive.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --library-type ${{ matrix.library_type }}
       - uses: actions/upload-artifact@v4
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         with:
-          name: Skia-${{ needs.prepare.outputs.version }}-linux-${{ matrix.build_type }}-x64.zip
+          name: Skia-${{ needs.prepare.outputs.version }}-linux-${{ matrix.build_type }}-x64${{ matrix.library_type == 'shared' && '-shared' || '' }}.zip
           path: '*.zip'
-      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }}
+      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -139,23 +141,24 @@ jobs:
       fail-fast: false
       matrix:
         build_type: [Debug, Release]
+        library_type: [static, shared]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - run: ./tools/skia_release/prepare_linux_wasm.sh
-      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target wasm --build-type ${{ matrix.build_type }} --machine wasm
+      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target wasm --build-type ${{ matrix.build_type }} --machine wasm --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: python3 tools/skia_release/build.py --skia-dir . --target wasm --machine wasm --build-type ${{ matrix.build_type }} --gpu-as-extension --enable-graphite-dawn
-      - run: python3 tools/skia_release/archive.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target wasm --machine wasm --build-type ${{ matrix.build_type }}
+      - run: python3 tools/skia_release/build.py --skia-dir . --target wasm --machine wasm --build-type ${{ matrix.build_type }} --library-type ${{ matrix.library_type }} --gpu-as-extension --enable-graphite-dawn
+      - run: python3 tools/skia_release/archive.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target wasm --machine wasm --build-type ${{ matrix.build_type }} --library-type ${{ matrix.library_type }}
       - uses: actions/upload-artifact@v4
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         with:
-          name: Skia-${{ needs.prepare.outputs.version }}-wasm-${{ matrix.build_type }}-wasm.zip
+          name: Skia-${{ needs.prepare.outputs.version }}-wasm-${{ matrix.build_type }}-wasm${{ matrix.library_type == 'shared' && '-shared' || '' }}.zip
           path: '*.zip'
-      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target wasm --machine wasm --build-type ${{ matrix.build_type }}
+      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target wasm --machine wasm --build-type ${{ matrix.build_type }} --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -170,12 +173,13 @@ jobs:
       matrix:
         build_type: [Debug, Release]
         machine: ["x64", "arm64"]
+        library_type: [static, shared]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - run: ./tools/skia_release/prepare_linux.sh
-      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target android --build-type ${{ matrix.build_type }} --machine ${{ matrix.machine }}
+      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target android --build-type ${{ matrix.build_type }} --machine ${{ matrix.machine }} --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -183,14 +187,14 @@ jobs:
         id: setup-ndk
         with:
           ndk-version: r27d
-      - run: python3 tools/skia_release/build.py --skia-dir . --target android --build-type ${{ matrix.build_type }} --machine ${{ matrix.machine }} --ndk ${{ steps.setup-ndk.outputs.ndk-path }} --gpu-as-extension --enable-graphite
-      - run: python3 tools/skia_release/archive.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target android --build-type ${{ matrix.build_type }} --machine ${{ matrix.machine }}
+      - run: python3 tools/skia_release/build.py --skia-dir . --target android --build-type ${{ matrix.build_type }} --machine ${{ matrix.machine }} --library-type ${{ matrix.library_type }} --ndk ${{ steps.setup-ndk.outputs.ndk-path }} --gpu-as-extension --enable-graphite
+      - run: python3 tools/skia_release/archive.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target android --build-type ${{ matrix.build_type }} --machine ${{ matrix.machine }} --library-type ${{ matrix.library_type }}
       - uses: actions/upload-artifact@v4
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         with:
-          name: Skia-${{ needs.prepare.outputs.version }}-android-${{ matrix.build_type }}-${{ matrix.machine }}.zip
+          name: Skia-${{ needs.prepare.outputs.version }}-android-${{ matrix.build_type }}-${{ matrix.machine }}${{ matrix.library_type == 'shared' && '-shared' || '' }}.zip
           path: '*.zip'
-      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target android --build-type ${{ matrix.build_type }} --machine ${{ matrix.machine }}
+      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --target android --build-type ${{ matrix.build_type }} --machine ${{ matrix.machine }} --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -203,11 +207,12 @@ jobs:
       fail-fast: false
       matrix:
         build_type: [Debug, Release]
+        library_type: [static, shared]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target linux --machine arm64
+      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target linux --machine arm64 --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -215,20 +220,20 @@ jobs:
         name: Assemble
         with:
           image: arm64v8/ubuntu:20.04
-          options: -v ${{ github.workspace }}:/workspace -e BUILD_TYPE=${{ matrix.build_type }} -e BUILD_VERSION=${{ needs.prepare.outputs.version }} -e SKIA_BUILD_DIR=/workspace
+          options: -v ${{ github.workspace }}:/workspace -e BUILD_TYPE=${{ matrix.build_type }} -e LIBRARY_TYPE=${{ matrix.library_type }} -e BUILD_VERSION=${{ needs.prepare.outputs.version }} -e SKIA_BUILD_DIR=/workspace
           shell: /bin/bash
           run: |
             set -euo pipefail
             cd /workspace
             /bin/bash tools/skia_release/prepare_linux_arm.sh
-            python3 tools/skia_release/build.py --skia-dir "${SKIA_BUILD_DIR}" --build-type "${BUILD_TYPE}" --target linux --machine arm64 --gpu-as-extension --enable-graphite
-            python3 tools/skia_release/archive.py --skia-dir "${SKIA_BUILD_DIR}" --version "${BUILD_VERSION}" --build-type "${BUILD_TYPE}" --target linux --machine arm64
+            python3 tools/skia_release/build.py --skia-dir "${SKIA_BUILD_DIR}" --build-type "${BUILD_TYPE}" --target linux --machine arm64 --library-type "${LIBRARY_TYPE}" --gpu-as-extension --enable-graphite
+            python3 tools/skia_release/archive.py --skia-dir "${SKIA_BUILD_DIR}" --version "${BUILD_VERSION}" --build-type "${BUILD_TYPE}" --target linux --machine arm64 --library-type "${LIBRARY_TYPE}"
       - uses: actions/upload-artifact@v4
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         with:
-          name: Skia-${{ needs.prepare.outputs.version }}-linux-${{ matrix.build_type }}-arm64.zip
+          name: Skia-${{ needs.prepare.outputs.version }}-linux-${{ matrix.build_type }}-arm64${{ matrix.library_type == 'shared' && '-shared' || '' }}.zip
           path: '*.zip'
-      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target linux --machine arm64
+      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target linux --machine arm64 --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -241,11 +246,12 @@ jobs:
       fail-fast: false
       matrix:
         build_type: [Debug, Release]
+        library_type: [static, shared]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target linux --machine riscv64
+      - run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target linux --machine riscv64 --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -257,21 +263,22 @@ jobs:
           docker run --rm --platform linux/riscv64 \
             -v "${GITHUB_WORKSPACE}:/workspace" \
             -e BUILD_TYPE="${{ matrix.build_type }}" \
+            -e LIBRARY_TYPE="${{ matrix.library_type }}" \
             -e BUILD_VERSION="${{ needs.prepare.outputs.version }}" \
             -e SKIA_BUILD_DIR=/workspace \
             ubuntu:24.04 \
             /bin/bash -euxo pipefail -c '
               cd /workspace
               ./tools/skia_release/prepare_linux_riscv64.sh
-              python3 tools/skia_release/build.py --skia-dir "${SKIA_BUILD_DIR}" --build-type "${BUILD_TYPE}" --target linux --machine riscv64 --gpu-as-extension --enable-graphite
-              python3 tools/skia_release/archive.py --skia-dir "${SKIA_BUILD_DIR}" --version "${BUILD_VERSION}" --build-type "${BUILD_TYPE}" --target linux --machine riscv64
+              python3 tools/skia_release/build.py --skia-dir "${SKIA_BUILD_DIR}" --build-type "${BUILD_TYPE}" --target linux --machine riscv64 --library-type "${LIBRARY_TYPE}" --gpu-as-extension --enable-graphite
+              python3 tools/skia_release/archive.py --skia-dir "${SKIA_BUILD_DIR}" --version "${BUILD_VERSION}" --build-type "${BUILD_TYPE}" --target linux --machine riscv64 --library-type "${LIBRARY_TYPE}"
             '
       - uses: actions/upload-artifact@v4
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         with:
-          name: Skia-${{ needs.prepare.outputs.version }}-linux-${{ matrix.build_type }}-riscv64.zip
+          name: Skia-${{ needs.prepare.outputs.version }}-linux-${{ matrix.build_type }}-riscv64${{ matrix.library_type == 'shared' && '-shared' || '' }}.zip
           path: '*.zip'
-      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target linux --machine riscv64
+      - run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target linux --machine riscv64 --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -285,6 +292,7 @@ jobs:
       matrix:
         build_type: [Debug, Release]
         machine: ["x64", "arm64"]
+        library_type: [static, shared]
     steps:
       - run: git config --global core.autocrlf input
       - uses: actions/checkout@v4
@@ -294,23 +302,23 @@ jobs:
         with:
           python-version: '3.9'
       - shell: bash
-        run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target windows --machine ${{ matrix.machine }}
+        run: python3 tools/skia_release/check_release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target windows --machine ${{ matrix.machine }} --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: microsoft/setup-msbuild@v1
       - uses: ilammy/msvc-dev-cmd@v1
       - shell: bash
-        run: python3 tools/skia_release/build.py --skia-dir . --build-type ${{ matrix.build_type }} --target windows --machine ${{ matrix.machine }} --gpu-as-extension --enable-graphite-dawn
+        run: python3 tools/skia_release/build.py --skia-dir . --build-type ${{ matrix.build_type }} --target windows --machine ${{ matrix.machine }} --library-type ${{ matrix.library_type }} --gpu-as-extension --enable-graphite-dawn
       - shell: bash
-        run: python3 tools/skia_release/archive.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target windows --machine ${{ matrix.machine }}
+        run: python3 tools/skia_release/archive.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target windows --machine ${{ matrix.machine }} --library-type ${{ matrix.library_type }}
       - uses: actions/upload-artifact@v4
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         with:
-          name: Skia-${{ needs.prepare.outputs.version }}-windows-${{ matrix.build_type }}-${{ matrix.machine }}.zip
+          name: Skia-${{ needs.prepare.outputs.version }}-windows-${{ matrix.build_type }}-${{ matrix.machine }}${{ matrix.library_type == 'shared' && '-shared' || '' }}.zip
           path: '*.zip'
       - shell: bash
-        run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target windows --machine ${{ matrix.machine }}
+        run: python3 tools/skia_release/release.py --skia-dir . --version ${{ needs.prepare.outputs.version }} --build-type ${{ matrix.build_type }} --target windows --machine ${{ matrix.machine }} --library-type ${{ matrix.library_type }}
         if: ${{ needs.prepare.outputs.should_release == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

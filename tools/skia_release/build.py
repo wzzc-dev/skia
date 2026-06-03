@@ -71,6 +71,7 @@ def main():
   prepare_skia_checkout(skia_dir)
 
   build_type = common.build_type()
+  library_type = common.library_type()
   machine = common.machine()
   host = common.host()
   target = common.target()
@@ -104,6 +105,7 @@ def main():
       'skia_pdf_subset_harfbuzz=true',
       'skia_use_system_icu=false',
       'skia_enable_skottie=true',
+      'is_component_build=' + ('true' if library_type == 'shared' else 'false'),
       'extra_cflags=[]',
       'extra_cflags_cc=[]',
   ]
@@ -221,7 +223,7 @@ def main():
   if enable_graphite_dawn:
     args += ['skia_use_dawn=true']
 
-  out = os.path.join('out', build_type + '-' + target + '-' + machine)
+  out = os.path.join('out', common.output_dir_name())
   gn = 'gn.exe' if host == 'windows' else 'gn'
   gn_cmd = [os.path.join('bin', gn), 'gen', out, '--args=' + ' '.join(args)]
   subprocess.check_call(gn_cmd)

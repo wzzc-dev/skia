@@ -16,6 +16,7 @@ def create_parser(version_required=False):
   parser.add_argument('--enable-graphite', action=argparse.BooleanOptionalAction, default=False)
   parser.add_argument('--enable-graphite-dawn', action=argparse.BooleanOptionalAction, default=False)
   parser.add_argument('--gpu-as-extension', action=argparse.BooleanOptionalAction, default=False)
+  parser.add_argument('--library-type', choices=['static', 'shared'], default='static')
   parser.add_argument('--version', required=version_required)
   parser.add_argument('--classifier')
   parser.add_argument('--host')
@@ -138,6 +139,19 @@ def build_type():
   return args.build_type
 
 
+def library_type():
+  parser = create_parser()
+  (args, _) = parser.parse_known_args()
+  return args.library_type
+
+
+def output_dir_name():
+  name = build_type() + '-' + target() + '-' + machine()
+  if library_type() != 'static':
+    name += '-' + library_type()
+  return name
+
+
 def enable_graphite():
   parser = create_parser()
   (args, _) = parser.parse_known_args()
@@ -165,7 +179,11 @@ def gpu_as_extension():
 def classifier():
   parser = create_parser()
   (args, _) = parser.parse_known_args()
-  return '-' + args.classifier if args.classifier else ''
+  if args.classifier:
+    return '-' + args.classifier
+  if args.library_type != 'static':
+    return '-' + args.library_type
+  return ''
 
 
 def github_headers():

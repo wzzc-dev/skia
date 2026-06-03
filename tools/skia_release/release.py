@@ -10,6 +10,33 @@ import urllib.request
 import common
 
 
+def release_for_tag(releases_url, version, headers):
+  try:
+    return urllib.request.urlopen(
+        urllib.request.Request(releases_url + '/tags/' + version, headers=headers)
+    ).read()
+  except urllib.error.HTTPError as error:
+    if error.code != 404:
+      raise
+
+  data = json.dumps({
+      'tag_name': version,
+      'name': version,
+      'target_commitish': common.current_revision(),
+  })
+
+  try:
+    return urllib.request.urlopen(
+        urllib.request.Request(releases_url, data=data.encode('utf-8'), headers=headers)
+    ).read()
+  except urllib.error.HTTPError as error:
+    if error.code != 422:
+      raise
+    return urllib.request.urlopen(
+        urllib.request.Request(releases_url + '/tags/' + version, headers=headers)
+    ).read()
+
+
 def main():
   version = common.version()
   build_type = common.build_type()
@@ -25,20 +52,7 @@ def main():
 
   headers = common.github_headers()
   releases_url = 'https://api.github.com/repos/' + common.github_repo() + '/releases'
-
-  try:
-    resp = urllib.request.urlopen(
-        urllib.request.Request(releases_url + '/tags/' + version, headers=headers)
-    ).read()
-  except urllib.error.URLError:
-    data = json.dumps({
-        'tag_name': version,
-        'name': version,
-        'target_commitish': common.current_revision(),
-    })
-    resp = urllib.request.urlopen(
-        urllib.request.Request(releases_url, data=data.encode('utf-8'), headers=headers)
-    ).read()
+  resp = release_for_tag(releases_url, version, headers)
 
   upload_url = re.match(
       'https://.*/assets',

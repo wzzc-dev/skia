@@ -16,6 +16,26 @@ def parents(path):
   return res
 
 
+def library_globs(out_bin, library_type):
+  if library_type == 'shared':
+    return [
+        out_bin + '/*.so',
+        out_bin + '/*.wasm.so',
+        out_bin + '/*.dylib',
+        out_bin + '/*.dll',
+        out_bin + '/*.dll.lib',
+        out_bin + '/*_ext.a',
+        out_bin + '/*_ext.a.wasm',
+        out_bin + '/*_ext.lib',
+    ]
+
+  return [
+      out_bin + '/*.a',
+      out_bin + '/*.a.wasm', # TODO: temporary for m147, in the next release, change it to '.wasm.a'
+      out_bin + '/*.lib',
+  ]
+
+
 def main():
   skia_dir = common.skia_dir()
 
@@ -23,14 +43,12 @@ def main():
   version = common.version()
   machine = common.machine()
   target = common.target()
+  library_type = common.library_type()
   classifier = common.classifier()
-  out_bin = 'out/' + build_type + '-' + target + '-' + machine
+  out_bin = 'out/' + common.output_dir_name()
 
-  globs = [
+  globs = library_globs(out_bin, library_type) + [
       out_bin + '/gen/third_party/dawn/include/**/*',
-      out_bin + '/*.a',
-      out_bin + '/*.a.wasm', # TODO: temporary for m147, in the next release, change it to '.wasm.a'
-      out_bin + '/*.lib',
       out_bin + '/icudtl.dat',
       'include/**/*',
       'modules/particles/include/*.h',

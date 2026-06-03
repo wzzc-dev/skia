@@ -54,6 +54,8 @@ jobs:
             echo "should_release=true" >> "$GITHUB_OUTPUT"
           elif [[ "$GITHUB_REF" == refs/heads/riscv64 ]]; then
             echo "should_release=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REF" == refs/heads/moui-support ]]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
           elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$INPUT_SHOULD_RELEASE" == "true" ]]; then
             echo "should_release=true" >> "$GITHUB_OUTPUT"
           else

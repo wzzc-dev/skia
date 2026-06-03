@@ -227,7 +227,9 @@ def main():
   gn = 'gn.exe' if host == 'windows' else 'gn'
   gn_cmd = [os.path.join('bin', gn), 'gen', out, '--args=' + ' '.join(args)]
   subprocess.check_call(gn_cmd)
-  ninja_targets = ['skia', 'modules']
+  ninja_targets = ['skia']
+  if library_type == 'static':
+    ninja_targets.append('modules')
   if gpu_as_extension:
     if enable_ganesh:
         ninja_targets.append('skia_ganesh_ext')

@@ -13,6 +13,7 @@
 #include "include/core/SkRefCnt.h"
 #include "include/core/SkSurface.h"
 #include "include/gpu/graphite/GraphiteTypes.h"
+#include "include/gpu/graphite/ImageProvider.h"
 #include "include/gpu/graphite/Recording.h"
 #include "include/private/SingleOwner.h"
 #include "include/private/SkAPI.h"
@@ -53,7 +54,6 @@ class Context;
 class Device;
 class DrawBufferManager;
 class FloatStorageManager;
-class ImageProvider;
 class PaintParamsKeyBuilder;
 class PipelineDataGatherer;
 class ProxyReadCountMap;

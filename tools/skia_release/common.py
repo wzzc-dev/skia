@@ -22,6 +22,7 @@ def create_parser(version_required=False):
   parser.add_argument('--host')
   parser.add_argument('--machine')
   parser.add_argument('--ndk')
+  parser.add_argument('--ohos-sdk-native')
   parser.add_argument('--skia-dir')
   parser.add_argument('--target')
   return parser
@@ -279,3 +280,9 @@ def ndk():
   parser = create_parser()
   (args, _) = parser.parse_known_args()
   return args.ndk if args.ndk else ''
+
+
+def ohos_sdk_native():
+  parser = create_parser()
+  (args, _) = parser.parse_known_args()
+  return args.ohos_sdk_native if args.ohos_sdk_native else os.environ.get('OHOS_SDK_NATIVE', '')

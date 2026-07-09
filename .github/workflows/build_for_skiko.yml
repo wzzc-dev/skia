@@ -201,6 +201,74 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  linux-harmonyos:
+    needs: prepare
+    if: ${{ github.ref_name != 'riscv64' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+        machine: ["arm64"]
+        library_type: [static, shared]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - uses: openharmony-rs/setup-ohos-sdk@v1.0.1
+        id: setup-ohos-sdk
+        with:
+          version: '6.1'
+          components: native
+      - run: |
+          python3 tools/skia_release/check_release.py \
+            --skia-dir . \
+            --version ${{ needs.prepare.outputs.version }} \
+            --target harmonyos \
+            --build-type ${{ matrix.build_type }} \
+            --machine ${{ matrix.machine }} \
+            --library-type ${{ matrix.library_type }}
+        if: ${{ needs.prepare.outputs.should_release == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          python3 tools/skia_release/build.py \
+            --skia-dir . \
+            --target harmonyos \
+            --build-type ${{ matrix.build_type }} \
+            --machine ${{ matrix.machine }} \
+            --library-type ${{ matrix.library_type }} \
+            --ohos-sdk-native "${{ steps.setup-ohos-sdk.outputs.ohos_sdk_native }}" \
+            --gpu-as-extension \
+            --enable-graphite
+      - run: |
+          python3 tools/skia_release/archive.py \
+            --skia-dir . \
+            --version ${{ needs.prepare.outputs.version }} \
+            --target harmonyos \
+            --build-type ${{ matrix.build_type }} \
+            --machine ${{ matrix.machine }} \
+            --library-type ${{ matrix.library_type }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ needs.prepare.outputs.should_release == 'true' }}
+        with:
+          name: Skia-${{ needs.prepare.outputs.version }}-harmonyos-${{ matrix.build_type }}-${{ matrix.machine }}${{ matrix.library_type == 'shared' && '-shared' || '' }}.zip
+          path: '*.zip'
+      - run: |
+          python3 tools/skia_release/release.py \
+            --skia-dir . \
+            --version ${{ needs.prepare.outputs.version }} \
+            --target harmonyos \
+            --build-type ${{ matrix.build_type }} \
+            --machine ${{ matrix.machine }} \
+            --library-type ${{ matrix.library_type }}
+        if: ${{ needs.prepare.outputs.should_release == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   linux-arm64:
     needs: prepare
     if: ${{ github.ref_name != 'riscv64' }}

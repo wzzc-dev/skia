@@ -9,6 +9,12 @@ import time
 import common
 
 
+OHOS_TARGET_TRIPLES = {
+  'arm64': 'aarch64-linux-ohos',
+  'x64': 'x86_64-linux-ohos',
+}
+
+
 def git_sync_with_retries(skia_dir, max_retries=3, backoff_seconds=5):
   attempt = 0
   while True:
@@ -65,6 +71,35 @@ def ninja_path(host):
   return os.path.join('third_party', 'ninja', 'ninja.exe' if host == 'windows' else 'ninja')
 
 
+def ohos_toolchain_args(ohos_sdk_native, machine):
+  if not ohos_sdk_native:
+    raise Exception('HarmonyOS builds require --ohos-sdk-native or OHOS_SDK_NATIVE')
+
+  target_triple = OHOS_TARGET_TRIPLES.get(machine)
+  if target_triple is None:
+    raise Exception('Unsupported HarmonyOS machine: {}'.format(machine))
+
+  sdk_native = os.path.abspath(ohos_sdk_native)
+  llvm_bin = os.path.join(sdk_native, 'llvm', 'bin')
+  sysroot = os.path.join(sdk_native, 'sysroot')
+
+  return [
+      'target_os="linux"',
+      'cc="' + os.path.join(llvm_bin, 'clang') + ' --target=' + target_triple + ' --sysroot=' + sysroot + '"',
+      'cxx="' + os.path.join(llvm_bin, 'clang++') + ' --target=' + target_triple + ' --sysroot=' + sysroot + '"',
+      'ar="' + os.path.join(llvm_bin, 'llvm-ar') + '"',
+      'host_cc="cc"',
+      'host_cxx="c++"',
+      'host_ar="ar"',
+      'skia_use_fontconfig=false',
+      'skia_use_perfetto=false',
+      'skia_use_x11=false',
+      'skia_gl_standard="gles"',
+      'skia_use_egl=true',
+      'skia_use_vulkan=true',
+  ]
+
+
 def main():
   skia_dir = common.skia_dir()
   os.chdir(skia_dir)
@@ -76,6 +111,7 @@ def main():
   host = common.host()
   target = common.target()
   ndk = common.ndk()
+  ohos_sdk_native = common.ohos_sdk_native()
   gpu_as_extension = common.gpu_as_extension()
   enable_ganesh = common.enable_ganesh()
   enable_graphite = common.enable_graphite()
@@ -180,6 +216,8 @@ def main():
         'ndk="' + ndk + '"',
         'skia_use_vulkan=true',
     ]
+  elif target == 'harmonyos':
+    args += ohos_toolchain_args(ohos_sdk_native, machine)
   elif target == 'wasm':
     if enable_graphite_dawn:
       args += ['skia_use_webgpu=true']

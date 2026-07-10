@@ -91,6 +91,7 @@ def ohos_toolchain_args(ohos_sdk_native, machine):
       'host_cc="cc"',
       'host_cxx="c++"',
       'host_ar="ar"',
+      'skia_use_partition_alloc=false',
       'skia_use_fontconfig=false',
       'skia_use_perfetto=false',
       'skia_use_x11=false',
@@ -211,6 +212,8 @@ def main():
           'clang_win="' + os.path.dirname(os.path.dirname(clang_path)) + '"',
           'is_trivial_abi=false',
       ]
+    if library_type == 'shared':
+      args += ['skia_use_partition_alloc=false']
   elif target == 'android':
     args += [
         'ndk="' + ndk + '"',
